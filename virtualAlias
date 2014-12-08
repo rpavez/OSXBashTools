@@ -1,0 +1,43 @@
+#!/bin/bash
+# Virtual Alias for OSX
+# By Rpavez (rpavez@gmail.com)
+if [[ $UID != 0 ]]; then
+    echo "Please run this script with sudo:"
+    echo "sudo $0 $*"
+    exit 1
+fi
+
+
+while read -p "Enter domain (default:dev.local): " domain; do
+     if [[ -z "${domain}" ]]; then
+          domain="dev.local"
+          break
+     else
+          break
+     fi
+done
+while read -p "Enter port: (default:3000)" port; do
+     if [[ -z "${port}" ]]; then
+          port="3000"
+          break
+     else
+          break
+     fi
+done
+echo "Setting up virtual domains.."
+
+sed '/${domain}/d' /etc/hosts > /tmp/tmpHosts && mv /tmp/tmpHosts /etc/hosts
+echo "127.0.0.2  ${domain}">> /etc/hosts
+
+echo "Setting up forwards"
+sudo ifconfig lo0 alias 127.0.0.2 up
+sudo ipfw delete fwd 127.0.0.1,$port tcp from me to 127.0.0.2 dst-port 80
+sudo ipfw add fwd 127.0.0.1,$port tcp from me to 127.0.0.2 dst-port 80
+echo "Ready.."
+open -a Google\ Chrome http://${domain}
+exit 0
+
+#for ((i=2;i<256;i++))
+#do
+#	a=$(cat /etc/hosts | grep 127.0.0.$i)
+#done
