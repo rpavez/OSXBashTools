@@ -31,8 +31,18 @@ echo "127.0.0.2  ${domain}">> /etc/hosts
 
 echo "Setting up forwards"
 sudo ifconfig lo0 alias 127.0.0.2 up
-sudo ipfw delete fwd 127.0.0.1,$port tcp from me to 127.0.0.2 dst-port 80
-sudo ipfw add fwd 127.0.0.1,$port tcp from me to 127.0.0.2 dst-port 80
+
+os=$(sw_vers -productVersion)
+if [[ $os == *"10.10"* ]]; then
+  echo "You're using Yosemite!"
+  printf '%s\n' 'rdr pass on lo0 inet proto tcp from any to 127.0.0.2 port 80 -> 127.0.0.1 port ${port}' > /etc/pf.anchors/eclipse.valias.forwarding
+  printf '%s\n%s\n\n' 'rdr-anchor "forwarding"' 'load anchor "forwarding" from "/etc/pf.anchors/eclipse.valias.forwarding"' > /etc/pf-valias.conf
+  sudo pfctl -ef /etc/pf-valias.conf
+else
+  echo "You're using less than Yosemite!"
+  sudo ipfw delete fwd 127.0.0.1,$port tcp from me to 127.0.0.2 dst-port 80
+  sudo ipfw add fwd 127.0.0.1,$port tcp from me to 127.0.0.2 dst-port 80
+fi
 echo "Ready.."
 open -a Google\ Chrome http://${domain}
 exit 0
